@@ -1,101 +1,124 @@
-import Image from "next/image";
+"use client"
+
+import { useState, useEffect } from "react"
+import { QuestionCard } from "@/components/QuestionCard"
+import { ResultCard } from "@/components/ResultCard"
+import { Question } from "@/types/types"
+import { decodeHtmlEntities, shuffleOptions } from "@/utils/utils"
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  // State to hold the list of questions fetched from the API
+  const [questions, setQuestions] = useState<Question[]>([])
+  
+  // State to track the index of the current question being displayed
+  const [currentQuestion, setCurrentQuestion] = useState(0)
+  
+  // State to track which option the user has selected
+  const [selectedOption, setSelectedOption] = useState<number | null>(null)
+  
+  // State to track if the selected answer is correct or not
+  const [isAnswerCorrect, setIsAnswerCorrect] = useState<boolean | null>(null)
+  
+  // State to keep track of the user's total score
+  const [score, setScore] = useState(0)
+  
+  // State to track if the user has submitted their answer for the current question
+  const [hasSubmitted, setHasSubmitted] = useState(false)
+  
+  // State to track whether the app is still loading the questions
+  const [loading, setLoading] = useState(true)
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+  // Fetch questions from the API when the component mounts
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      try {
+        // Fetch the questions from the Open Trivia Database API
+        const response = await fetch("https://opentdb.com/api.php?amount=10")
+        const data = await response.json()
+
+        // Format the questions to include the question, shuffled options, correct answer, and difficulty
+        const formattedQuestions = data.results.map((question) => ({
+          question: decodeHtmlEntities(question.question), // Decode HTML entities in question text
+          options: shuffleOptions([question.correct_answer, ...question.incorrect_answers]), // Shuffle correct and incorrect answers
+          correctAnswer: question.correct_answer, // Store the correct answer
+          difficulty: question.difficulty, // Store the difficulty level of the question
+        }))
+
+        // Set the fetched and formatted questions in the state
+        setQuestions(formattedQuestions)
+
+        // Set loading to false once questions are loaded
+        setLoading(false)
+      } catch (error) {
+        console.error("Error fetching questions:", error)
+      }
+    }
+
+    fetchQuestions()
+  }, [])
+  
+  // Handle when the user selects an option for the current question
+  const handleOptionSelect = (index: number) => {
+    if (!hasSubmitted) {
+      // Only allow selection if the question hasn't been submitted
+      setSelectedOption(index)
+    }
+  }
+
+  // Handle the submission of the selected answer
+  const handleSubmit = () => {
+    if (selectedOption === null) return // If no option is selected, return early
+
+    // Get the selected answer based on the selected option index
+    const selectedAnswer = questions[currentQuestion].options[selectedOption]
+    
+    // Check if the selected answer matches the correct answer
+    const isCorrect = selectedAnswer === questions[currentQuestion].correctAnswer
+    
+    // Set the result of whether the answer is correct or not
+    setIsAnswerCorrect(isCorrect)
+
+    // Mark the question as submitted
+    setHasSubmitted(true)
+
+    // If the answer is correct, increase the score
+    if (isCorrect) {
+      setScore((prevScore) => prevScore + 1)
+    }
+  }
+
+  // Handle moving to the next question
+  const handleNextQuestion = () => {
+    // Reset the selection and submission states for the next question
+    setSelectedOption(null)
+    setIsAnswerCorrect(null)
+    setHasSubmitted(false)
+
+    // Move to the next question
+    setCurrentQuestion((prev) => prev + 1)
+  }
+
+  // Show a loading screen while the questions are being fetched
+  if (loading) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center h-screen bg-background">
+      {/* If the current question index is within bounds, show the question card, else show the result card */}
+      {currentQuestion < questions.length ? (
+        <QuestionCard
+          question={questions[currentQuestion]} // Pass the current question
+          selectedOption={selectedOption} // Pass the selected option
+          isAnswerCorrect={isAnswerCorrect} // Pass whether the answer is correct
+          hasSubmitted={hasSubmitted} // Pass if the user has submitted the answer
+          onSelectOption={handleOptionSelect} // Function to handle option selection
+          onSubmit={handleSubmit} // Function to handle submission
+          onNext={handleNextQuestion} // Function to move to the next question
+        />
+      ) : (
+        <ResultCard score={score} totalQuestions={questions.length} /> // Show the final score after all questions are answered
+      )}
     </div>
-  );
+  )
 }
