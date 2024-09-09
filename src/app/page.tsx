@@ -105,6 +105,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-background">
+     <h2 className="text-4xl font-bold mb-4">Quiz App</h2>
       {/* If the current question index is within bounds, show the question card, else show the result card */}
       {currentQuestion < questions.length ? (
         <QuestionCard
